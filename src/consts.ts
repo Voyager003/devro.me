@@ -1,7 +1,7 @@
 // Place any global data in this file.
 
 export const SITE = {
-  title: 'bepyan.me',
+  title: 'devro.me',
   titleTemplate: '%s',
   description: 'Develop about something Soft and Simple.',
   image:

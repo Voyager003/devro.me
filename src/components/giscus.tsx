@@ -35,8 +35,8 @@ export const GiscusSection = (
 
     const giscusAttributes = {
       src: 'https://giscus.app/client.js',
-      'data-repo': 'bepyan/bepyan.me.v2',
-      'data-repo-id': 'R_kgDOKUQR3A',
+      'data-repo': 'Voyager003/devro.me',
+      'data-repo-id': 'R_kgDONACh0A',
       'data-category': 'General',
       'data-category-id': 'DIC_kwDOKUQR3M4CbE1x',
       'data-mapping': 'pathname',
