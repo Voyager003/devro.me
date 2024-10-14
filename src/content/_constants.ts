@@ -1,8 +1,8 @@
 export const externalWritings = [
   {
-    title: '5개월간 스타트업에서 굴렀다. 그리고 얻었다.',
-    description: '2021.07.05 ~ 2021.11.26',
-    date: '2021-12-14',
-    link: 'https://velog.io/@bepyan/5개월간-스타트업에서-굴렀다.-그리고-얻었다',
+    title: '이펙티브 자바 시리즈',
+    description: '2023.04.30 ~ 2024.06.17',
+    date: '2023-04-30',
+    link: 'https://voyager003.github.io/wiki/java/effective_item1/',
   },
 ];
