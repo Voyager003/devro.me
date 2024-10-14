@@ -1,0 +1,95 @@
+---
+import '~/styles/mdx.css';
+
+import { type CollectionEntry } from 'astro:content';
+import { format } from 'date-fns';
+
+import BaseHeader from '~/components/base-header.astro';
+import BaseLeftAside from '~/components/base-left-aside.astro';
+import BaseNav from '~/components/base-nav.astro';
+import CopyRight from '~/components/copy-right.astro';
+import { GiscusSection } from '~/components/giscus';
+import MediumZoomScript from '~/components/medium-zoom-script.astro';
+import PostImage from '~/components/post/post-image.astro';
+import TableOfContent from '~/components/table-of-content';
+import MainLayout from '~/layouts/main-layout.astro';
+import type { Language } from '~/libs/i18n';
+import {
+  contentToDescription,
+  getPostType,
+  parseToc,
+  resolveSlug,
+} from '~/libs/mdx';
+
+export type Props = {
+  lang: Language;
+  post: CollectionEntry<'post'>;
+  prevPost: CollectionEntry<'post'>;
+  nextPost: CollectionEntry<'post'>;
+  noI18n?: boolean;
+};
+
+const { lang, post, prevPost, nextPost, noI18n } = Astro.props;
+
+const postType = getPostType(post);
+const { title, date } = post.data;
+const description = post.data.description || contentToDescription(post.body);
+const toc = parseToc(post.body);
+
+const { Content } = await post.render();
+---
+
+<MainLayout seo={{ title, description }}>
+  <BaseLeftAside>
+    <TableOfContent
+      data-animate
+      className="px-2 text-sm md:hidden"
+      toc={toc}
+      client:load
+    />
+  </BaseLeftAside>
+  <BaseHeader {title} description={format(date, 'MMM dd, yyyy')} {noI18n}>
+    <BaseNav class="mt-1.5" hightlightNavItem={postType} />
+  </BaseHeader>
+  <article data-animate data-animate-speed="fast" class="mdx mt-14">
+    <Content components={{ img: PostImage }} />
+  </article>
+  <footer>
+    <CopyRight class="mt-page text-right text-xs" />
+    <hr class="mb-7 mt-4" />
+    <section class="text-tx flex items-stretch justify-between gap-1 text-sm">
+      {
+        !!prevPost && (
+          <a
+            class="group flex flex-col gap-1"
+            href={`/post/${resolveSlug(prevPost.slug)}`}
+          >
+            <div class="text-disabled transition-colors group-hover:text-second">
+              Previous
+            </div>
+            <span class="-mx-1 rounded px-1 text-second transition-colors group-hover:bg-selection group-hover:text-heading">
+              {prevPost.data.title}
+            </span>
+          </a>
+        )
+      }
+      {
+        !!nextPost && (
+          <a
+            class="group ml-auto flex flex-col gap-1 text-right text-second hover:text-body"
+            href={`/post/${resolveSlug(nextPost.slug)}`}
+          >
+            <div class="text-disabled transition-colors group-hover:text-second">
+              Next
+            </div>
+            <span class="-mx-1 rounded px-1 text-second transition-colors group-hover:bg-selection group-hover:text-heading">
+              {nextPost.data.title}
+            </span>
+          </a>
+        )
+      }
+    </section>
+    <GiscusSection className="mx-auto mt-20" {lang} client:load />
+  </footer>
+  <MediumZoomScript />
+</MainLayout>

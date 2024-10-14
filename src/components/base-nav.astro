@@ -1,0 +1,55 @@
+---
+import {
+  getLangFromUrl,
+  type Language,
+  useTranslatedPath,
+  useTranslations,
+} from '~/libs/i18n';
+import { cn } from '~/libs/utils';
+
+import { DotIcon } from './ui/icons';
+
+const NAV_ITEM_LIST = ['writing', 'note', 'craft'] as const;
+type NavItem = (typeof NAV_ITEM_LIST)[number];
+
+type Props = {
+  class?: string;
+  lang?: Language;
+  hightlightNavItem?: NavItem;
+};
+
+const { props, url } = Astro;
+
+const currentNavItem = url.pathname.split('/').filter(Boolean).join('');
+
+const lang = props.lang ?? getLangFromUrl(url);
+const p = useTranslatedPath(lang);
+const t = useTranslations(lang);
+---
+
+<div class={cn('flex items-center gap-2 font-serif text-sm', props.class)}>
+  <div>
+    <span>by</span>
+    <a class="link ml-0.5" href={p('/')}>
+      {t('index.name')}
+    </a>
+  </div>
+  <DotIcon className="h-2 w-2 text-second" />
+  <div class="flex items-center gap-2">
+    {
+      NAV_ITEM_LIST.map((navItem) => (
+        <a
+          class={cn(
+            'external-link',
+            (navItem === currentNavItem ||
+              navItem === props.hightlightNavItem) &&
+              'font-bold no-underline before:bg-selection before:ring-border hover:before:ring-1',
+          )}
+          href={p(`/${navItem}`)}
+        >
+          {t(`nav.${navItem}`)}
+        </a>
+      ))
+    }
+  </div>
+</div>
