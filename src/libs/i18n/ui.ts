@@ -15,8 +15,6 @@ export const ui = {
     'nav.writing.desc': 'A place to write tech-article',
     'nav.note': 'Imagery',
     'nav.note.desc': 'A place to write down my thoughts',
-    'nav.craft': 'Craft',
-    'nav.craft.desc': 'A place to write trial and error',
     'index.name': 'Wongi Rim',
     'index.desc':
       `<p>I'm recording to doesn't volatilize.</p>`,
@@ -30,8 +28,6 @@ export const ui = {
     'nav.writing.desc': '개발 관련 글을 적는 곳',
     'nav.note': '심상',
     'nav.note.desc': '생각을 적는 곳',
-    'nav.craft': '공방',
-    'nav.craft.desc': '시행 착오를 기록하는 곳',
     'index.name': '임원기',
     'index.desc':
       `<p>휘발되지 않도록 <b>기록</b>을 남기고 있습니다.</p>`,

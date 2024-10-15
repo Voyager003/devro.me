@@ -57,7 +57,7 @@ const { p, t } = useI18n(url);
       <div>{t('nav.title')}</div>
       <div data-animate class="flex flex-col gap-1">
         {
-          (['writing', 'note', 'craft'] as const).map((item) => (
+          (['writing', 'note'] as const).map((item) => (
             <div style="--lv-wait: 2;">
               <a class="link font-bold" href={p(`/${item}`)}>
                 {t(`nav.${item}`)}

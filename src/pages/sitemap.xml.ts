@@ -20,7 +20,6 @@ export async function GET() {
     ${renderUrl('/')}
     ${renderUrl('/writing')}
     ${renderUrl('/note')} 
-    ${renderUrl('/craft')}
     ${posts
       .map((post) => {
         const langPrefix = post.lang === 'ko' ? '' : `/${post.lang}`;
