@@ -38,7 +38,7 @@ export const GiscusSection = (
       'data-repo': 'Voyager003/devro.me',
       'data-repo-id': 'R_kgDONACh0A',
       'data-category': 'General',
-      'data-category-id': 'DIC_kwDOKUQR3M4CbE1x',
+      'data-category-id': 'DIC_kwDONACh0M4CjXlT',
       'data-mapping': 'pathname',
       'data-strict': '0',
       'data-reactions-enabled': '1',

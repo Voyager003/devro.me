@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://bepyan.me/sitemap.xml
+Sitemap: https://www.romedev.me/sitemap.xml
