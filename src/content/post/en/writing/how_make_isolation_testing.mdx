@@ -1,0 +1,192 @@
+---
+title: 'Create an isolation testing environment'
+description: ''
+date: 2024-11-25 22:26:10
+draft: false
+tags:
+  - spring
+  - test
+---
+
+Writing test code when creating software is a great way to increase the reliability of your service and reduce side effects.
+
+Creating an “isolated test environment” is a very important concept in testing, and here's how you can build one.
+
+All example code is on [Github repo](https://github.com/Voyager003/isloation_testing).
+
+## What is Isolation testing?
+
+**Isolation testing** is the process of decomposing a system into multiple modules so that they can be easily tested or evaluated.
+
+By decomposing a system into modules, we can focus on testing individual features or methods “unaffected by complexity and dependencies”.
+
+It's a bit abstract to explain, so let's imagine a situation.
+
+### What happens when you're not isolated
+
+<img src="https://github.com/user-attachments/assets/f9a3500e-8de4-47b1-a935-4bce8ba1c5f6" />
+
+First, when you save a Product in the first test(testSaveProduct), the test succeeds without throwing an exception.
+
+Then, when the second test(testFindProductThrowsException) is run, test fails because the 'NoExistProductException' exception is not thrown because the information for the product registered in the first test already exists in the DataBase.
+
+Because each test was not isolated, the result of one test affected the result of another test.
+
+On the other hand, run the tests one by one the tests will succeed because the information registered in the DataBase is not duplicated.
+
+In this way, tests that **do not always guarantee the same result** due to reasons such as the order of execution in tests that use a shared resource such as the DataBase are called `Non-Determinisitic Tests'.
+
+Non-deterministic tests are contagious, so if you have a collection of 100 tests with 10 non-deterministic tests, they will occasionally fail, which will ruin the whole test suite.
+
+## How isolate test?
+
+The key to test isolation is that they must be executed independently and deterministically, regardless of order.
+
+Here's how to create an isolated test environment, according to [Martin Fowler's blog]((https://martinfowler.com/articles/nonDeterminism.html).
+
+1. rebuild starting state from scratch, or ensure that each test cleans up properly after itself.
+2. when you're using databases, is to conduct your tests inside a transaction, and then to rollback the transaction at the end of the test.
+
+Several frameworks provide functionality to do this, let's take a look at them one by one.
+
+### @BeforeEach, @AfterEach
+
+`@BeforeEach` and `@AfterEach` annotations are features supported by the Junit framework that, when specified in a method, indicate that it should be executed before or after each method in the current test class, respectively.
+
+<img src="https://github.com/user-attachments/assets/125d41ce-b201-431c-8fc2-4fffb1745a07" />
+
+**BeforeEach(setUp)** can specify what a method inside that class always does before it starts, in this case, we've defined the fixtures we need for the test so that it starts by creating two Products and testing them before running the test.
+
+**AfterEach(tearDown) is responsible for destroying the data after the test is finished so that other tests are not affected by the data in the Database.
+
+<img src="https://github.com/user-attachments/assets/20f31f75-7d3c-45c5-848d-315d2c9cd851" />
+
+<img src="https://github.com/user-attachments/assets/ffff1584-c405-494b-977b-728f6e307df9" />
+
+f you check the test results, you'll see that the annotated methods are executed before and after the start of each test.
+
+This manual way of cleaning up the state can help you deal with redundant tasks that need to be executed in each test, and it also reduces the length of your code, making it more readable.
+
+It's important to note that if you configure a fixture in your setUp, that test and the fixture can be combined and affect all of your tests.
+
+That's mean modifying the setUp shouldn't affect other tests.
+
+For this reason, if you have fixtures that may be executed in multiple test codes, you may want to **extract them as separate factory methods** to reduce coupling between tests.
+
+### @Transactional
+
+Spring provides a very handy feature to **automatically roll back** if you specify the `@Transactinoal` annotation in your test code.
+
+<img src="https://github.com/user-attachments/assets/5edbff83-76e6-4c3a-83d7-518a6001e746" />
+
+Let's check the results of a test run without @BeforeEach and @AfterEach.
+
+<img src="https://github.com/user-attachments/assets/a52fa1a2-6c28-4b55-848a-b8134ad283b5" />
+
+First test succeeds, but the second test doesn't roll back the first test, so the result of the previous test, 3, is carried over and we see that there are 5 instead of the expected 2.
+
+But what if we specified @Transactional in the test method?
+
+<img src="https://github.com/user-attachments/assets/9cf95363-da69-406e-886f-4d637d3a2e02" />
+
+As expected, the tests are successful because they automatically roll back when each test performs as expected.
+
+While this provides the convenience of automatically rolling back with a single annotation, there are side effects such as unintended transactions being applied during test execution due to issues such as only one transaction boundary being used.
+
+The side effects of using @Transactional in your test code are too extensive to cover in this article, so i'll treat soon.
+
+### @DataJpaTest
+
+The `@DataJpaTest` is an annotation that focuses on JPA components.
+
+in [spring docs](https://docs.spring.io/spring-boot/api/java/org/springframework/boot/test/autoconfigure/orm/jpa/DataJpaTest.html)
+
+1. tests annotated with @DataJpaTest are transactional and rolled back after each test.
+2. uses an in-memory db (replaces the explicit or normally auto-configured DataSource).
+3. you can override these settings using the @AutoConfigureTestDatabase annotation.
+4. SQL queries are logged by default by setting the spring.jpa.show-sql property to true, which can be disabled using the showSql property.
+5. if you want to load the full apllcation configuration but use an embedded db, you should consider @SpringBootTest combined with @AutoConfigureTestDatabase rather than this annotation.
+
+but let's take a look at just what we need.
+
+<img src="https://github.com/user-attachments/assets/114fd932-841a-4955-a0a8-9c0a1e0c847f" />
+
+Set the logging level to DEBUG in application.yml and run the above test, you will see that
+
+<img src="https://github.com/user-attachments/assets/b1def3fd-a01a-4998-afa4-fd07121ca117" />
+
+In fact, you can see that each test is rolled back after it is executed, and the tests are rolled back and succeed as intended, because we include the @Transactional annotation inside the @DataJpaTest annotation.
+
+Quick and easy testing, focus on data accesses, etc. It's a great annotation, but I'm wondering how it's used in production testing and how I can use it to test more efficiently.
+
+
+### @SQL
+
+The `@SQL` is an annotation that allows you to run SQL scripts before and after the test execution.
+
+Scripts written in the `*.sql` file can be used to initialize or clean up the state of the DB to make it suitable for testing.
+
+First, create a script file.
+
+```
+// truncate.sql
+TRUNCATE TABLE product;
+
+// ddl.sql
+INSERT INTO product (id, name, quantity) VALUES (1, '테스트 상품1', 10);
+INSERT INTO product (id, name, quantity) VALUES (2, '테스트 상품2', 20);
+```
+
+<img src="https://github.com/user-attachments/assets/08b5c994-41ab-4b39-afbd-5ea441379277" />
+
+In this case, the location of the script file is under resources.
+
+<img src="https://github.com/user-attachments/assets/df93d3c3-1a0f-4c50-9152-2025ecfa7ecc" />
+
+1. the first script (`truncate.sql`) puts the database in an initial state, typically including a command like `TRUNCATE TABLE product;` that deletes all the data in the table,
+2. the second script (`ddl.sql`) inserted the initial data needed for the test or set up any necessary schema changes.
+
+<img src="https://github.com/user-attachments/assets/beec0bc9-d02a-4f8b-ade3-057487a38190" />
+
+test is succeed.
+
+Similar to @Before, AfterEach in Junit, the `executionPhase` property gives you the flexibility to control when the SQL script is executed.
+
+<img src="https://github.com/user-attachments/assets/a7861e56-67f3-4cb6-b84a-b32312671b9c" />
+
+You can set `BEFORE_TEST_METHOD` or `AFTER_TEST_METHOD` to run the script before or after each test method for flexible execution control.
+
+As I mentioned above, testing with the @Transactional annotation has a lot of side effects, and the @SQL approach is an alternative.
+
+### @DirtiesContext
+
+`@DirtiesContext` annotation indicates that the underlying Spring ApplicationContext became dirty (modified or corrupted in some way, such as changing the state of a singleton bean) during the test run and should be closed.
+
+If tests using the same Application Context recycle an existing context rather than creating a new context for each test, the next test that runs might fail because the previous test changed the property value of a particular bean, or removed it, or changed the state of an object.
+
+<img src="https://github.com/user-attachments/assets/344c88a8-ce17-4de9-a614-582c0c1fa3e5" />
+
+However, if we specify the annotation, a new context is created for each test run, and the underlying Spring container is rebuilt for all subsequent tests.
+
+This is the first time I've learned about annotations, and I think it's overkill to ensure independence by reloading the context every time you run a test, even though one of the principles of testing is to be fast.
+
+Especially if the production code becomes huge, the overhead will be even bigger, so I think it's better to look for other good alternatives.
+
+## 맺음
+
+Test code is just as important as production code.
+
+Tests related to DB are especially tricky because the data changes every time you run the test, so you can't guarantee consistent results, but I think you can write good tests if you understand the benefits and caveats of different methods.
+
+I'm sure there are a lot of methods I didn't cover, and I'll have to find a good way to apply them in new projects.
+
+Thanks for reading, and if you point out any incorrect information, I'll fix it.
+
+## 출처
+
+- https://www.professionalqa.com/isolation-testing?t
+- https://martinfowler.com/articles/nonDeterminism.html
+- https://jojoldu.tistory.com/611
+- https://docs.spring.io/spring-boot/api/java/org/springframework/boot/test/autoconfigure/orm/jpa/DataJpaTest.html
+- https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/test/context/jdbc/Sql.html
+- https://docs.spring.io/spring-framework/docs/4.2.x/spring-framework-reference/html/integration-testing.html
