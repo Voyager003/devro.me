@@ -13,7 +13,7 @@ import remarkGfm from 'remark-gfm';
 // https://astro.build/config
 /** @type {import('astro/config').defineConfig} */
 export default defineConfig({
-  site: 'https://www.romedev.me/',
+  site: 'https://www.romedev.me',
   integrations: [
     tailwind({
       applyBaseStyles: false,
