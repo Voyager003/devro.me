@@ -1,0 +1,224 @@
+---
+title: 'Dig up Mockito with Mock, Spy'
+description: ''
+date: 2024-11-27 21:36:52
+draft: false
+tags:
+  - java
+  - spring
+  - test
+---
+
+hello. I've been studying Mock, Spy in Test double and I'm getting confused, so I've put together a personal summary.
+
+All example code is on a [Github](https://github.com/Voyager003/blog-code/tree/main/testdouble).
+
+---
+
+## Test double
+
+First, let's talk about test doubles before the example. description follow this [Xunit pattern](http://xunitpatterns.com/Test%20Double.html).
+
+> Sometimes it is just plain hard to test the system under test (SUT) because it depends on other components that cannot be used in the test environment.
+> ...
+> When we are writing a test in which we cannot (or chose not to) use a real depended-on component (DOC), we can replace it with a Test Double. The Test Double doesn't have to behave exactly like the real DOC;
+> it merely has to provide the same API as the real one so that the SUT thinks it is the real one!
+
+<img src="https://github.com/user-attachments/assets/e522dcb1-4b52-4641-a10e-4322f51f1a2e" />
+
+To summarize it in one line, we can say that it's software that creates objects that satisfy dependencies without relying on production code.
+
+There are five types of test doubles, but we'll only focus on the ones you need to understand.
+
+### Stub
+
+> It replaces real objects with test-specific objects that support the desired indirect inputs to the system under test.
+
+**Stub** are a way to provide canned responses to things that are called during testing.
+
+Let's see at the code rather than explain it.
+
+#### How to work with Stubs in Mockito
+
+##### Ongoing Stubbing
+
+<img src="https://github.com/user-attachments/assets/62d25eea-ed9a-4e42-9de3-c4365c93d416" />
+
+
+`Ongoing Stubbing` is a method that specifies the method to be stubbed in the when method and defines the return value. This is written in the form of a method chaining.
+
+```java
+when(reservatinoService.createReservation()).thenReturn(product);
+```
+In these case, method to stub would be reservatinoService.createReservation(), and the code to define that product is returned after the call to the stubbed method.
+
+For then, you can have it not only return an object, but also throw an exception (thenThrow) and call the real method (thenCallRealMethod).
+
+##### Stubber
+
+<img src="https://github.com/user-attachments/assets/7ba556c8-abef-4567-bd18-e0ac636a2ec7" />
+
+`Stubber` inherits from BaseStubber, specifies the class to stub in the when clause, and calls the method.
+
+```java
+OrderService orderService = Mockito.mock(OrderService.class);
+
+Mockito.doReturn("DELIVERED").when(orderService).getOrderStatus(1L);
+
+String status = orderService.getOrderStatus(1L);
+
+assertEquals("DELIVERED", status);
+```
+
+In these case, we've defined the stub to return “DELIVERED” when getOrderStatus receives 1L.
+
+As with ongoing stubbing, we also support methods that throw exceptions or call the actual method.
+
+### Mock & Spy
+
+#### Mock
+
+The key of `Mock` is to mimic the behavior in the way it is intended.
+
+All methods on the Mock object do nothing by default, returning values only by predefined stubbing.
+
+
+```java
+// Mock generate
+BookService mockBookService = Mockito.mock(BookService.class);
+
+// return by Stubbing
+when(mockBookService.findBook("Java")).thenReturn(new Book("Java Programming"));
+```
+#### Spy
+
+The `Spy` is created based on a real object and calls the real methods on the object.
+
+However, we can specify the return value by stubbing to the method we need.
+
+```java
+// BookService
+public class BookService {
+    public Book findBook(String title) {
+        return new Book(title);
+    }
+}
+
+BookService realBookService = new BookService();
+
+BookService spyBookService = Mockito.spy(realBookService);
+
+// Stubbing specitfic method
+when(spyBookService.findBook("Java")).thenReturn(new Book("Mocked Book"));
+
+// 1. call none Stubbing method
+Book bookPython = spyBookService.findBook("Python");
+assertEquals("Python", bookPython.getTitle()); // 실제 title이 "Python"이어야 함
+
+// 2. call Stubbing method
+Book bookJava = spyBookService.findBook("Java");
+assertEquals("Mocked Book", bookJava.getTitle()); // title이 "Mocked Book"이어야 함
+    }
+}
+```
+
+we can use these attributes to test **some of the behavior of an object, while reserving the rest of the methods for when you actually need to execute it**.
+
+## Example
+
+The example is a book rental system, and the overall flow is as follows
+
+1. inquiry the user
+2. inquiry a book
+3. check book availability
+4. create and store the rental information
+
+A simplified implementation of the domain entities and service code required in the code looks like this.
+
+<img src="https://github.com/user-attachments/assets/12fa2483-fbdf-4e1c-90a1-81db83debd99" />
+
+Here is service code.
+
+<img src="https://github.com/user-attachments/assets/6343587e-f078-4adc-9143-320c25860dba" />
+
+Then write Service test code.
+
+<img src="https://github.com/user-attachments/assets/824efed4-c124-4b8f-a05b-f70c28efeaa7" />
+
+<img src="https://github.com/user-attachments/assets/c1281a27-31a5-4c9f-a8e9-b9de868bd8be" />
+
+### Issue
+
+Test is successful, but it has some issues.
+
+The given section creates a fixture for creating domain entities, followed by saving them to the DataBase. Although not included in the example, if it is similar to a production environment, it will also be preceded by settings related to the DataBase.
+
+The concerns of createReservation are
+
+1. throwing an exception if the user and book are not found
+2. validate the availability of the book
+3. make sure the reservation object is created and saved
+4. changed the book's availability status
+5. return the reservation ID
+
+but there is too much surrounding code declared in the given clause, which means that the “concern” of the test is off.
+
+So what kind of context do we need to set up to make the test fit the concern?
+
+1. throw exception if user and book are not found -> return empty Optional when calling findById with non-existent memberId, bookId
+2. check if the book is available -> set the status of the retrieved Book object to AvailabilityStatus.RESERVED
+3. verify that the booking object is created and saved -> changeAvailability(AvailabilityStatus.RESERVED) is called
+
+etc... we probably need to set up situations like the above, but it's too cumbersome to set them up in advance and then re-set them every time we run the test.
+
+Let's use a test double to isolate our code.
+
+## Using Mock
+
+<img src="https://github.com/user-attachments/assets/f1d318b4-bd49-4da2-a0c3-70539ad7d337" />
+
+<img src="https://github.com/user-attachments/assets/722d61db-f9eb-46a1-8f0b-c18cbb6163d8" />
+
+Unlike the first integration test I wrote that brought up a spring context, this one
+
+1. instead of creating a real repository to resolve dependencies, we created a mock object to resolve dependencies
+2. wrote expectation behaviors (when, thenReturn) to create the desired expectation situation in the test and stubbed it (stub)
+3. verify the behavior (verify).
+
+At this point, you can see that the @InjectMocks annotation is specified in the Service code, which will automatically create instances for the fields specified by the annotation and find and inject the fields specified by @Mock, @Spy, if any.
+
+## Using Spy
+
+<img src="https://github.com/user-attachments/assets/29bb7827-02c2-4db9-b9b2-15c7b8795abb" />
+
+<img src="https://github.com/user-attachments/assets/df69a04d-34a5-4815-a911-caa33dd50f30" />
+
+Let's say your test encounters a scenario where you borrow a book and then don't change the borrow status (the book's changeAvailability method).
+
+As we saw above, Spy can handle this.
+
+We declared the Book object as a spy object and then stubbed it so that when the changeAvailability method is called, it does nothing.
+
+The original behavior should have changed the status to RESERVED if a rental status change was attempted, but since it didn't behave as specified by the stubbing, we could see that it was still AVAILABLE when changeAvailability was called.
+
+This is how you can make your test environment predictable by stubbing only partially based on real objects.
+
+---
+
+## Closing
+
+I've always been of the mindset that testing with mocks doesn't guarantee that the functionality will work in production if the test is successful.
+
+So I've deliberately avoided using mocks, but writing this article has been a good time to think about how to write efficient tests and how to use test doubles to isolate tests.
+
+There are a lot of opinions on testing methodologies, so I think I need to see more situations to solidify my thoughts.
+
+Thanks for reading, and if you can point out any misinformation, I'll take it on board.
+
+---
+
+## Reference
+
+- http://xunitpatterns.com/Test%20Double.html - Xunit Testdouble
+- http://xunitpatterns.com/Test%20Stub.html - Xunit stub
+- https://en.wikipedia.org/wiki/Test_double - Mock, Spy
