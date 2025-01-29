@@ -19,9 +19,14 @@ export const isNote = (post: { slug: string }) => {
   return post.slug.includes('/note/');
 };
 
+export const isLibrary = (post: { slug: string }) => {
+  return post.slug.includes('/library/');
+};
+
 export const getPostType = (post: { slug: string }) => {
   if (isWriting(post)) return 'writing';
   if (isNote(post)) return 'note';
+  if (isLibrary(post)) return 'library';
 
   Error('post slug is invalid...');
 };
@@ -77,7 +82,7 @@ export type PostInfo = {
 };
 
 export const getPostInfoList = async (
-  type: 'all' | 'writing' | 'note' = 'all',
+  type: 'all' | 'writing' | 'note' | 'library' = 'all',
 ) => {
   const posts = await getPostCollection();
 
@@ -85,6 +90,7 @@ export const getPostInfoList = async (
     .filter((post) => {
       if (type === 'writing') return isWriting(post);
       if (type === 'note') return isNote(post);
+      if (type === 'library') return isLibrary(post);
       return true;
     })
     .map<PostInfo>((post) => ({

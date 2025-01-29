@@ -1,7 +1,7 @@
 ---
 import PostLayout from '~/layouts/post-layout.astro';
 import { getLangFromSlug } from '~/libs/i18n/utils';
-import { getPostCollection, isNote, isWriting, resolveSlug } from '~/libs/mdx';
+import {getPostCollection, isLibrary, isNote, isWriting, resolveSlug} from '~/libs/mdx';
 
 export async function getStaticPaths() {
   const posts = await getPostCollection();
@@ -12,6 +12,8 @@ export async function getStaticPaths() {
       const postList = list.filter((item) => {
         if (isWriting(post)) return isWriting(item);
         if (isNote(post)) return isNote(item);
+        if (isLibrary(post)) return isLibrary(item);
+
         return true;
       });
       const postIndex = postList.findIndex((item) => item.id === post.id);
